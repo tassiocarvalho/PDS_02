@@ -2,15 +2,18 @@
 % Criado para dados do ATmega2560 transmitidos a 1Mbps
 
 % Configurações
-porta_serial = '/dev/ttyUSB0';    % Ajuste para sua porta (Windows: 'COM1', Linux: '/dev/ttyUSB0')
+porta_serial = 'COM6';           % Ajuste para sua porta (Windows: 'COM6', Linux: '/dev/ttyUSB0')
 baud_rate = 1000000;             % Deve corresponder ao valor no código do ATmega2560
 tempo_aquisicao = 1;             % Tempo de aquisição em segundos
 tamanho_janela = 500;            % Número de pontos exibidos no gráfico
-max_leituras = 15000;            % Número máximo de leituras por segundo (baseado na taxa de amostragem)
+max_leituras = 15000;            % Número máximo de leituras por segundo
 
-% Abrir a porta serial
-pkg load instrument-control;     % Carregar pacote (execute 'pkg install -forge instrument-control' se necessário)
-s = serialport(porta_serial, baud_rate);
+% Carregar pacote instrument-control
+pkg load instrument-control;
+
+% Abrir a porta serial - usando interface compatível com maioria das versões do Octave
+s = serial(porta_serial, baud_rate);
+srl_flush(s);
 
 % Configurar gráfico
 figure(1);
@@ -25,8 +28,9 @@ grid on;
 try
   while true
     % Limpar buffer antes de cada nova aquisição
-    if serialport_available(s) > 0
-      flush(s);
+    bytes_disponiveis = srl_read(s, 0);
+    if (numel(bytes_disponiveis) > 0)
+      srl_flush(s);
     end
     
     % Preparar arrays para armazenar os dados
@@ -36,10 +40,11 @@ try
     % Adquirir dados durante o tempo especificado
     while (time() - tempo_inicio) < tempo_aquisicao && length(dados) < max_leituras
       % Verificar se há pelo menos 2 bytes disponíveis
-      if serialport_available(s) >= 2
+      bytes_disponiveis = srl_read(s, 0);
+      if (numel(bytes_disponiveis) >= 2)
         % Ler high byte e low byte
-        byte_alto = uint16(fread(s, 1));
-        byte_baixo = uint16(fread(s, 1));
+        byte_alto = uint16(srl_read(s, 1));
+        byte_baixo = uint16(srl_read(s, 1));
         
         % Combinar os bytes para formar um valor de 10 bits
         valor = bitshift(byte_alto, 8) + byte_baixo;
@@ -53,7 +58,7 @@ try
     end
     
     % Se coletamos dados suficientes, atualizar o gráfico
-    if !isempty(dados)
+    if ~isempty(dados)
       % Limitar o número de pontos exibidos
       if length(dados) > tamanho_janela
         dados_exibir = dados(end-tamanho_janela+1:end);
@@ -80,8 +85,10 @@ catch e
   
 finally
   % Garantir que a porta serial seja fechada
-  if exist('s', 'var') && isvalid(s)
-    delete(s);
-  end
+  if exist('s', 'var')
+    if (strcmp(typeinfo(s), 'octave_serial'))
+      srl_close(s);
+    endif
+  endif
   fprintf('Porta serial fechada\n');
 end
