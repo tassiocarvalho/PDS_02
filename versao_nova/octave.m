@@ -3,21 +3,55 @@ close all;
 clear;
 clc;
 
+
 % Configurações iniciais
-comPort = 'COM5';       % Porta COM do Arduino
 baudRate = 2000000;     % Mesma taxa usada no Arduino (2Mbps)
 maxSamples = 2046;      % Número de amostras (1023 subida + 1023 descida)
 updateTime = 5;         % Tempo em segundos entre atualizações
 voltRef = 5;            % Referência de tensão (5V)
 resolution = 1023;      % Resolução do ADC (10 bits: 2^10-1)
 
+% Lista as portas seriais disponíveis (varia entre Windows e Linux/Mac)
+if ispc
+    [~, result] = system('wmic path win32_pnpentity get caption | findstr "COM"');
+    ports = strsplit(result, '\n');
+    disp('Portas seriais disponíveis:');
+    for i = 1:length(ports)
+        if ~isempty(ports{i})
+            disp(ports{i});
+        end
+    end
+else
+    disp('Em Linux/Mac, as portas seriais geralmente estão em /dev/tty*');
+    if exist('/dev', 'dir')
+        [~, result] = system('ls /dev/tty*');
+        disp(result);
+    end
+end
+
+% Solicita ao usuário a porta COM
+comPort = input('Digite a porta COM do Arduino (ex: COM3): ', 's');
+
+% Verifica se o pacote de comunicação serial está instalado
+if exist('serial') ~= 2
+    error('Pacote de comunicação serial não encontrado. No Octave, use: pkg install -forge instrument-control');
+end
+
 % Tenta abrir a porta serial
 try
     serialObj = serial(comPort, 'BaudRate', baudRate);
     fopen(serialObj);
     disp(['Porta ', comPort, ' aberta com sucesso!']);
-catch
-    error(['Não foi possível abrir a porta ', comPort, '. Verifique se o Arduino está conectado corretamente.']);
+catch e
+    disp(['Erro ao abrir a porta ', comPort, ': ', e.message]);
+    disp('Alternativas:');
+    disp('1. Verifique se o Arduino está conectado corretamente');
+    disp('2. Verifique se a porta COM está correta');
+    disp('3. Verifique se o pacote instrument-control está instalado (pkg install -forge instrument-control)');
+    disp('4. Verifique se outro programa está usando a porta');
+    disp('5. No Windows, verifique o Gerenciador de Dispositivos');
+    disp('6. No Linux, verifique as permissões da porta (sudo chmod 666 /dev/ttyXXX)');
+    error('Não foi possível abrir a porta serial');
 end
 
 % Cria a figura
@@ -37,11 +71,11 @@ try
         if serialObj.BytesAvailable > 0
             fread(serialObj, serialObj.BytesAvailable);
         end
-        
+
         % Coleta os dados
         adcValues = [];
         disp('Coletando dados...');
-        
+
         % Espera até que tenhamos maxSamples valores
         while length(adcValues) < maxSamples && ishandle(fig)
             if serialObj.BytesAvailable > 0
@@ -52,21 +86,21 @@ try
             end
             drawnow limitrate;  % Permite a interface atualizar
         end
-        
+
         if ~ishandle(fig)
             break;
         end
-        
+
         % Converte os valores do ADC para tensão
         voltage = (adcValues / resolution) * voltRef;
-        
+
         % Atualiza o gráfico
         set(h, 'XData', 1:length(voltage), 'YData', voltage);
         drawnow;
-        
+
         % Calcula e mostra a frequência do sinal
         disp(['Amostras coletadas: ', num2str(length(voltage))]);
-        
+
         % Localiza os picos para estimar a frequência
         [peaks, locs] = findpeaks(voltage, 'MinPeakHeight', 0.8*voltRef);
         if length(locs) >= 2
@@ -77,7 +111,7 @@ try
             estSignalFreq = estSamplingFreq / avgSamplesPerCycle;
             disp(['Frequência estimada do sinal: ', num2str(estSignalFreq), ' Hz']);
         end
-        
+
         % Aguarda o tempo de atualização
         disp(['Aguardando ', num2str(updateTime), ' segundos para próxima atualização...']);
         pause(updateTime);
