@@ -2,7 +2,7 @@
 % Criado para dados do ATmega2560 transmitidos a 1Mbps
 
 % Configurações
-porta_serial = 'COM6';           % Ajuste para sua porta (Windows: 'COM6', Linux: '/dev/ttyUSB0')
+porta_serial = "COM3";           % Ajuste para sua porta (Windows: 'COM6', Linux: '/dev/ttyUSB0')
 baud_rate = 1000000;             % Deve corresponder ao valor no código do ATmega2560
 tempo_aquisicao = 1;             % Tempo de aquisição em segundos
 tamanho_janela = 500;            % Número de pontos exibidos no gráfico
@@ -32,11 +32,11 @@ try
     if (numel(bytes_disponiveis) > 0)
       srl_flush(s);
     end
-    
+
     % Preparar arrays para armazenar os dados
     dados = [];
     tempo_inicio = time();
-    
+
     % Adquirir dados durante o tempo especificado
     while (time() - tempo_inicio) < tempo_aquisicao && length(dados) < max_leituras
       % Verificar se há pelo menos 2 bytes disponíveis
@@ -45,10 +45,10 @@ try
         % Ler high byte e low byte
         byte_alto = uint16(srl_read(s, 1));
         byte_baixo = uint16(srl_read(s, 1));
-        
+
         % Combinar os bytes para formar um valor de 10 bits
         valor = bitshift(byte_alto, 8) + byte_baixo;
-        
+
         % Armazenar o valor
         dados = [dados, valor];
       else
@@ -56,7 +56,7 @@ try
         pause(0.001);
       end
     end
-    
+
     % Se coletamos dados suficientes, atualizar o gráfico
     if ~isempty(dados)
       % Limitar o número de pontos exibidos
@@ -65,12 +65,12 @@ try
       else
         dados_exibir = dados;
       end
-      
+
       % Atualizar o gráfico
       set(h, 'YData', dados_exibir);
       set(h, 'XData', 1:length(dados_exibir));
       drawnow;
-      
+
       % Exibir estatísticas
       fprintf('Amostras coletadas: %d, Valor médio: %.2f, Min: %d, Max: %d\n', ...
               length(dados), mean(dados), min(dados), max(dados));
@@ -82,7 +82,7 @@ try
 catch e
   % Em caso de erro ou interrupção, fechar a porta serial
   fprintf('Programa interrompido: %s\n', e.message);
-  
+
 finally
   % Garantir que a porta serial seja fechada
   if exist('s', 'var')
