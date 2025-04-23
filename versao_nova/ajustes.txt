@@ -1,0 +1,4 @@
+ Sugestão de Ajustes:
+Pausas no Código C: Adicionar um pequeno atraso entre as leituras do ADC pode ajudar a estabilizar a comunicação, caso a taxa de amostragem de 10.230 Hz não seja suficiente para lidar com a velocidade da porta serial.
+
+Controle de Buffer: Adicionar uma verificação do buffer serial pode garantir que nenhum dado seja perdido, caso o fluxo de dados seja muito rápido.
