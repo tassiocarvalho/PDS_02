@@ -6,7 +6,7 @@ pkg load instrument-control;
 
 % Configurações
 porta = 'COM5';
-baudrate = 115200;
+baudrate = 2000000;
 
 % Informações
 disp('=== MONITOR SERIAL BÁSICO ===');

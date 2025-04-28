@@ -8,9 +8,9 @@ pkg load instrument-control;
 
 % Configurações
 porta = 'COM5';
-baudrate = 115200;
-tamanho_buffer = 3000;  % Tamanho do buffer de dados para exibição
-tempo_atualizacao = 0.01;  % Atualiza o gráfico a cada 0.2 segundos (5 atualizações por segundo)
+baudrate = 2000000;
+tamanho_buffer = 2048;  % Tamanho do buffer de dados para exibição
+tempo_atualizacao = 0.00001;  % Atualiza o gráfico a cada 0.2 segundos (5 atualizações por segundo)
 
 % Informações
 disp('=== OSCILOSCÓPIO SERIAL + TERMINAL ===');
