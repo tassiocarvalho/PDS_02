@@ -96,10 +96,10 @@ printf('recebido: %s', c);     % Imprime na tela do octave o que foi recebido
 
 %%%%%%%%%%%%%%%%%%% CRIAÇÃO DA FIGURA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 figure(1);                     % Cria uma figura para plotagem
-h1 = subplot(4,1,1);           % Cria o primeiro subplot e guarda o handle
-h2 = subplot(4,1,2);           % Cria o segundo subplot e guarda o handle
-h3 = subplot(4,1,3);           % Cria o terceiro subplot e guarda o handle
-h4 = subplot(4,1,4);           % Cria o quarto subplot para comparação
+h1 = subplot(3,1,1);           % Cria o primeiro subplot e guarda o handle
+h2 = subplot(3,1,2);           % Cria o segundo subplot e guarda o handle
+h3 = subplot(3,1,3);           % Cria o terceiro subplot e guarda o handle
+#h4 = subplot(4,1,4);           % Cria o quarto subplot para comparação
 
 %%%%%%%%%%%%%%%%%%% LOOP PRINCIPAL COM ATUALIZAÇÃO A CADA SEGUNDO %%%%%%%%%%%%%
 try
@@ -191,18 +191,6 @@ try
             % Gera sinal triangular ideal com os parâmetros estimados
             sinal_ideal = generateTriangularSignal(freq_est, amplitude, offset, length(raw), fs);
 
-            % Adiciona gráfico de comparação entre sinal real e ideal
-            subplot(h4);
-            hold on;
-            plot(raw, 'b', 'LineWidth', 1);
-            plot(sinal_ideal, 'r--', 'LineWidth', 1);
-            hold off;
-            xlabel('n');
-            ylabel('Valor ADC');
-            title('Comparação: Sinal Real (azul) vs Ideal (vermelho)');
-            legend('Sinal Real', 'Sinal Ideal');
-            grid on;
-
             % Força atualização da figura
             drawnow;
 
@@ -273,7 +261,7 @@ try
 
                 % Identifica bits com maior probabilidade de falha
                 [~, idx] = sort(bits_problematicos, 'descend');
-                printf('Bits mais problemáticos (do MSB para o LSB): ');
+                #printf('Bits mais problemáticos (do MSB para o LSB): ');
                 for i = 1:min(3, length(idx))
                     if bits_problematicos(idx(i)) > 0
                         printf('Bit %d (%.1f%% dos valores ausentes), ', 10-idx(i)+1, 100*bits_problematicos(idx(i))/length(valores_ausentes));
