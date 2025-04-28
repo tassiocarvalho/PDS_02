@@ -239,11 +239,11 @@ try
                 valores_ausentes = setdiff(todos_valores, unique(raw));
                 % Mostra alguns valores ausentes (se não forem muitos)
                 if length(valores_ausentes) <= 20
-                    printf('Valores específicos ausentes: ');
-                    printf('%d ', valores_ausentes);
+                    printf('Valores ausentes (%d). Mostrando os primeiros 10: ', length(valores_ausentes));
+                    printf('%d ', valores_ausentes(1:10));
                     printf('\n');
                 else
-                    printf('Muitos valores ausentes (%d). Mostrando os primeiros 10: ', length(valores_ausentes));
+                    printf('Valores ausentes (%d). Mostrando os primeiros 10: ', length(valores_ausentes));
                     printf('%d ', valores_ausentes(1:10));
                     printf('\n');
                 endif
