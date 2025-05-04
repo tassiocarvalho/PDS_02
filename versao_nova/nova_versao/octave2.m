@@ -1,4 +1,3 @@
-
 clc;                           %limpa a tela do octave
 clear all;                     %limpa todas as variáveis do octave
 close all;                     %fecha todas as janelas
@@ -46,9 +45,15 @@ printf('recebido: %s', c);     % Imprime na tela do octave o que foi recebido
 
 %%%%%%%%%%%%%%%%%%% CRIAÇÃO DA FIGURA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 figure(1);                     % Cria uma figura para plotagem
-h1 = subplot(3,1,1);           % Cria o primeiro subplot e guarda o handle
-h2 = subplot(3,1,2);           % Cria o segundo subplot e guarda o handle
-h3 = subplot(3,1,3);           % Cria o terceiro subplot e guarda o handle
+h1 = subplot(3,2,1);           % Cria o primeiro subplot e guarda o handle
+h2 = subplot(3,2,2);           % Cria o segundo subplot e guarda o handle
+h3 = subplot(3,2,3);           % Cria o terceiro subplot e guarda o handle
+h4 = subplot(3,2,4);           % Histograma para ausência de bit
+h5 = subplot(3,2,5);           % DNL
+h6 = subplot(3,2,6);           % INL
+
+% Vetor para armazenar histórico de dados para análise de erros
+data_history = [];
 
 %%%%%%%%%%%%%%%%%%% LOOP PRINCIPAL COM ATUALIZAÇÃO A CADA SEGUNDO %%%%%%%%%%%%%
 try
@@ -100,9 +105,16 @@ try
         % Se recebeu dados, atualiza os gráficos
         if (length(data) > 0)
             raw = data;                  % Armazena os dados brutos
+
+            % Acumula dados para melhor análise de erros (mantém até MAX_RESULTS*5)
+            data_history = [data_history, raw];
+            if (length(data_history) > MAX_RESULTS*5)
+                data_history = data_history(end-MAX_RESULTS*5+1:end);
+            endif
+
             time = (0:length(raw)-1)/fs; % Vetor de tempo normalizado (em segundos)
 
-            % Atualiza o primeiro subplot
+            % Atualiza o primeiro subplot - Sinal Reconstruído
             subplot(h1);
             plot(time, raw*5/1023);      % Converte os valores ADC para tensão (0-5V)
             xlabel('t(s)');
@@ -110,7 +122,7 @@ try
             title('Sinal gerado x(t)');
             grid on;
 
-            % Atualiza o segundo subplot
+            % Atualiza o segundo subplot - Amostras Discretas
             subplot(h2);
             stem(raw,'.');                   % Plota amostras discretas
             xlabel('n');
@@ -118,13 +130,96 @@ try
             title('x[n]');
             grid on;
 
-            % Atualiza o terceiro subplot
+            % Atualiza o terceiro subplot - Sinal Escada
             subplot(h3);
             stairs(raw);                 % Plota amostras regulares em forma de escada
             xlabel('n');
             ylabel('Valor ADC');
             title('x[n] segurado');
             grid on;
+
+            %%%%%%%%%%%%%%%%%%% ANÁLISE DE ERROS DO ADC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            % Calcular histograma dos códigos para detectar ausência de bit
+            subplot(h4);
+            [counts, bins] = hist(data_history, 0:1023);  % Um bin para cada código possível
+            bar(bins, counts);
+            title('Histograma - Detecção de Ausência de Bit');
+            xlabel('Código ADC');
+            ylabel('Frequência');
+
+            % Encontra e destaca códigos ausentes
+            missing_codes = find(counts == 0);
+            if (!isempty(missing_codes))
+                hold on;
+                % Marca códigos ausentes em vermelho
+                plot(missing_codes-1, zeros(size(missing_codes)), 'r*', 'MarkerSize', 8);
+                hold off;
+                % Exibe informação sobre códigos ausentes
+                text(0.5, 0.9, sprintf('%d códigos ausentes', length(missing_codes)), ...
+                    'Units', 'normalized', 'Color', 'r');
+            endif
+
+            % Análise de DNL (Differential Non-Linearity)
+            subplot(h5);
+            % Normaliza contagens para estimar DNL
+            expected_count = mean(counts(counts > 0));  % Média de contagens (excluindo zeros)
+            dnl = (counts / expected_count) - 1;  % DNL normalizado
+
+            % Limita DNL para melhor visualização
+            dnl(isinf(dnl)) = -1;  % Códigos ausentes
+            bar(bins, dnl);
+            title('DNL Estimado');
+            xlabel('Código ADC');
+            ylabel('DNL (LSB)');
+            axis([0 1023 -1.2 1.2]);  % Limita visualização
+            grid on;
+
+            % Exibe DNL mínimo e máximo
+            dnl_min = min(dnl(isfinite(dnl)));
+            dnl_max = max(dnl);
+            text(0.05, 0.95, sprintf('DNL min: %.2f LSB', dnl_min), ...
+                'Units', 'normalized');
+            text(0.05, 0.85, sprintf('DNL max: %.2f LSB', dnl_max), ...
+                'Units', 'normalized');
+
+            % Análise de INL (Integral Non-Linearity)
+            subplot(h6);
+            % Calculamos INL como o acúmulo do DNL
+            inl = cumsum(dnl);
+            % Compensamos pelo offset inicial
+            inl = inl - inl(1);
+
+            plot(bins, inl);
+            title('INL Estimado');
+            xlabel('Código ADC');
+            ylabel('INL (LSB)');
+            grid on;
+
+            % Exibe INL mínimo e máximo
+            inl_min = min(inl);
+            inl_max = max(inl);
+            text(0.05, 0.95, sprintf('INL min: %.2f LSB', inl_min), ...
+                'Units', 'normalized');
+            text(0.05, 0.85, sprintf('INL max: %.2f LSB', inl_max), ...
+                'Units', 'normalized');
+
+            % Cálculo aproximado do erro de offset
+            % Assumindo que o sinal triangular começa em 0V
+            adc_min = min(raw);
+            offset_error = adc_min;  % Aproximação simples
+
+            % Cálculo aproximado do erro de ganho
+            % Assumindo que o sinal triangular atinge 5V
+            adc_max = max(raw);
+            gain_error = (1023 - adc_max) / 1023 * 100;  % Em porcentagem
+
+            % Exibe erros de offset e ganho
+            subplot(h1);
+            text(0.05, 0.15, sprintf('Erro de Offset: %d LSB', offset_error), ...
+                'Units', 'normalized');
+            text(0.05, 0.05, sprintf('Erro de Ganho: %.2f%%', gain_error), ...
+                'Units', 'normalized');
 
             % Força atualização da figura
             drawnow;

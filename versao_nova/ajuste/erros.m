@@ -58,7 +58,7 @@ function sinal = generateTriangularSignal(frequencia, amplitude, offset, num_amo
 endfunction
 
 %%%%%%%%%%%%%%%%%%% ALOCAÇÃO DE VARIÁVEIS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-MAX_RESULTS = 2048;            % Mesmo valor definido no Arduino
+MAX_RESULTS = 4096;            % Mesmo valor definido no Arduino
 fs = 10230;                    % Frequência de amostragem do ADC no Arduino
 amostras = 2048;               % Quantidade de amostras para visualizar
 raw = [];                      % Variável para armazenar os dados recebidos pela USB
