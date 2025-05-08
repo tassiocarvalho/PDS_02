@@ -8,15 +8,10 @@ pkg load signal                %biblioteca para processamento de sinais
 pkg load instrument-control    %biblioteca para comunicação serial
 
 %%%%%%%%%%%%%%%%%%% ALOCAÇÃO DE VARIÁVEIS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-MAX_RESULTS = 2047;            % Mesmo valor definido no Arduino
+MAX_RESULTS = 2048;            % Mesmo valor definido no Arduino
 fs = 10230;                    % Frequência de amostragem do ADC no Arduino
-amostras = 2047;              % Quantidade de amostras para visualizar
+amostras = 4096;                % Quantidade de amostras para visualizar
 raw = [];                      % Variável para armazenar os dados recebidos pela USB
-
-countFirstTime = 0;
-primeiraAmostraVetorCompleto = [];
-
-vetorReferencia = [];
 
 %%%%%%%%%%%%%%%%%%% ABERTURA DA PORTA SERIAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 s1 = serial("COM5");           % Porta COM5 conforme solicitado
@@ -27,20 +22,6 @@ set(s1, 'stopbits', 1);        % 1 bit de parada (1 ou 2)
 set(s1, 'timeout', 1);         % Tempo ocioso reduzido para 1 segundo
 srl_flush(s1);                 % Limpa buffer serial
 pause(1);                      % Espera 1 segundo antes de ler dados
-
-%%%%%%%%%%%%%%%%%%% GERANDO O VETOR DE REFERÊNCIA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for (let i = 0; i <= 1023; i++) {
-  vetorReferencia.push(i);
-}
-
-for (let i = 1022; i >= 0; i--) {
-  vetorReferencia.push(i);
-}
-
-%%%%%%%%%%%%%%%%%%% CÓDIGO DE ERRO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
 
 %%%%%%%%%%%%%%%%%%% LEITURA DA MENSAGEM INICIAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Corrigido: Pré-alocação do array t
@@ -61,7 +42,7 @@ end
 
 t = t(1:i);                    % Ajusta o tamanho final do array
 c = char(t);                   % Transformando caracteres recebidos em string
-#printf('recebido: %s', c);     % Imprime na tela do octave o que foi recebido
+printf('recebido: %s', c);     % Imprime na tela do octave o que foi recebido
 
 %%%%%%%%%%%%%%%%%%% CRIAÇÃO DA FIGURA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 figure(1);                     % Cria uma figura para plotagem
@@ -103,7 +84,6 @@ try
                     num_val = str2num(line);
                     if (!isempty(num_val))
                         data(end+1) = num_val;
-                        %printf('%d \n', num_val);
                     endif
                 endif
             catch
@@ -112,21 +92,15 @@ try
             end
 
             % Verifica se já temos amostras suficientes
-##            if (length(data) >= amostras)
-##                break;
-##            endif
-      end
-
-
-      if (countFirstTime == 0)
-        primeiraAmostraVetorCompleto = data;
-      endif
-
-      countFirstTime = countFirstTime + 1;
+            ##if (length(data) >= amostras)
+              ##  break;
+            ##endif
+        end
 
         % Se recebeu dados, atualiza os gráficos
         if (length(data) > 0)
             raw = data;                  % Armazena os dados brutos
+            time = (0:length(raw)-1)/fs; % Vetor de tempo normalizado (em segundos)
 
             str = '[';
             for i = 1:length(data)
@@ -136,11 +110,8 @@ try
                 endif
             endfor
             str = [str, ']'];
-            %printf('%s\n', str);
+            printf('%s\n\n\n\n\n\n\n\n\n', str);
 
-
-
-            time = (0:length(raw)-1)/fs; % Vetor de tempo normalizado (em segundos)
 
             % Atualiza o primeiro subplot
             subplot(h1);
@@ -160,7 +131,7 @@ try
 
             % Atualiza o terceiro subplot
             subplot(h3);
-            stairs(raw, '.');                 % Plota amostras regulares em forma de escada
+            stairs(raw);                 % Plota amostras regulares em forma de escada
             xlabel('n');
             ylabel('Valor ADC');
             title('x[n] segurado');
@@ -179,7 +150,7 @@ try
         end
 
         % Exibe a taxa de amostragem atual
-        %printf('Amostras coletadas: %d, Tempo: %.2f s\n', length(data), elapsed);
+        printf('Amostras coletadas: %d, Tempo: %.2f s\n', length(data), elapsed);
     end
 catch err
     % Captura exceções (como Ctrl+C)
