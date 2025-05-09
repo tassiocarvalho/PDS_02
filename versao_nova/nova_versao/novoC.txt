@@ -1,5 +1,5 @@
 const byte adcPin = 0; // A0 <= ATMega 2560 A0 pin for ADC0
-const int MAX_RESULTS = 2047; // Tamanho para armazenar 1023 amostras na subida e 1023 na descida
+const int MAX_RESULTS = 3072; // Tamanho para armazenar 1023 amostras na subida e 1023 na descida
 volatile uint16_t results [MAX_RESULTS]; // Vetor de dados
 volatile int resultNumber;
 volatile bool bufferFull = false;
@@ -10,23 +10,23 @@ volatile bool waiting_for_reset = true;
 ISR (ADC_vect)
 {
   uint16_t current_value = ADC;
-  
+
   // Se não estiver esperando um 0 (waiting_for_reset) e já tiver algo no vetor results
   if (!waiting_for_reset && resultNumber > 0) {
     int16_t diff = abs((int16_t)current_value - (int16_t)prev_value);
-    
-    if (diff > 5) {
-      // Passa a esperar por um reset (valor 0)
-      waiting_for_reset = true;
-    }
+
+    // if (diff > 5) {
+    //   // Passa a esperar por um reset (valor 0)
+    //   waiting_for_reset = true;
+    // }
   }
-  
+
   // esperando por um reset e o valor atual é 0 (ou próximo de 0)
   if (waiting_for_reset && current_value <= 2) {
     resultNumber = 0;
     waiting_for_reset = false;
   }
-  
+
   // Apenas armazenar o valor se não estamos esperando por um reset
   if (!waiting_for_reset) {
     // verifica se o buffer está cheio
@@ -61,14 +61,14 @@ void timer(){
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1 = 0;
-  
+
   // Para frequência de amostragem de ~10.230 Hz (para sinal de 5Hz com 2046 amostras por ciclo)
   TCCR1B = bit (CS11) |bit (WGM12); // CTC, prescaler de 8
   //TCCR1B = bit (CS11) | bit (CS10)  |bit (WGM12); // CTC, prescaler de 64
   TIMSK1 = bit (OCIE1B); // Habilita interrupção do Timer Compare Match B
-  
+
   // Cálculo: (16MHz)/ (8 * 10230) - 1 = 194
-  OCR1A = 195; 
+  OCR1A = 195;
   OCR1B = 195; // Mesma frequência de amostragem
 }
 
@@ -85,14 +85,14 @@ void loop() {
   if (bufferFull) {
     // Desabilita interrupções enquanto envia dados
     noInterrupts();
-    
+
     // Enviando para o Serial Plotter - precisa apenas enviar valores
     for (int i = 0; i < MAX_RESULTS; i++) {
       Serial.println(results[i]);
       // Um pequeno delay para não sobrecarregar o buffer serial
       //delayMicroseconds(100);
     }
-    
+
     bufferFull = false;
     interrupts();
   }

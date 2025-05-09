@@ -7,9 +7,9 @@ pkg load signal                %biblioteca para processamento de sinais
 pkg load instrument-control    %biblioteca para comunicação serial
 
 %%%%%%%%%%%%%%%%%%% ALOCAÇÃO DE VARIÁVEIS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-MAX_RESULTS = 2048;            % Mesmo valor definido no Arduino
+MAX_RESULTS = 3072;            % Mesmo valor definido no Arduino
 fs = 10230;                    % Frequência de amostragem do ADC no Arduino
-amostras = 2048                % Quantidade de amostras para visualizar
+amostras = 3072                  % Quantidade de amostras para visualizar
 raw = [];                      % Variável para armazenar os dados recebidos pela USB
 
 %%%%%%%%%%%%%%%%%%% ABERTURA DA PORTA SERIAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

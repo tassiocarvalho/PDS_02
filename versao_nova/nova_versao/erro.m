@@ -7,13 +7,18 @@ pkg load signal
 pkg load instrument-control
 
 %%%%%%%%%%%%%%%%%%% ALOCAÇÃO DE VARIÁVEIS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-MAX_RESULTS = 2047;
+MAX_RESULTS = 3072;
 fs = 10230;
-amostras = 2047;
+amostras = 3072;
 raw = [];
 
 countFirstTime = 0;
 primeiraAmostraVetorCompleto = [];
+
+isMaior500 = false;
+isDescida = false;
+isComplet = false;
+prevValue = -1;
 
 %%%%%%%%%%%%%%%%%%% GERANDO O VETOR DE REFERÊNCIA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Método mais eficiente em Octave
@@ -68,12 +73,9 @@ iteration_count = 0;
 
 try
     % CORREÇÃO: Mudamos de while(1) para uma condição de saída clara
-    while (iteration_count < max_iterations && length(primeiraAmostraVetorCompleto) < 2047)
+    while (!isComplet)
         tic;
         printf("Iteração %d: Tentando coletar dados...\n", iteration_count + 1);
-
-        % Limpa dados anteriores
-        data = [];
 
         % Lê dados disponíveis (até 'amostras' ou até timeout)
         for i = 1:amostras
@@ -100,32 +102,29 @@ try
                 if (length(line) > 0)
                     num_val = str2num(line);
                     if (!isempty(num_val))
-                        data(end+1) = num_val;
+                        primeiraAmostraVetorCompleto(end+1) = num_val;
+                        printf("valor recebido: %d \n", num_val);
+
+                        if (prevValue > num_val)
+                          isDescida = true;
+                        endif
+
+                        if (num_val > 500)
+                          isMaior500 = true;
+                        endif
+
+                        if (isDescida && num_val == 0 && isMaior500)
+                          isComplet = true;
+                          break;
+                        endif
+
+                        prevValue = num_val;
                     endif
                 endif
             catch
                 % Continua se houver erro
                 continue;
             end
-        end
-
-        % CORREÇÃO: Atualiza o vetor de amostras apenas se recebeu dados suficientes
-        if (length(data) > 0)
-            printf("Recebidos %d valores nesta iteração\n", length(data));
-            if (countFirstTime == 0)
-                primeiraAmostraVetorCompleto = data;
-                printf("Vetor de primeira amostra preenchido com %d valores\n", length(primeiraAmostraVetorCompleto));
-                if (length(primeiraAmostraVetorCompleto) >= 2047)
-                    printf("Coleta de dados concluída!\n");
-                    break;  % Sai do loop se já temos dados suficientes
-                endif
-            endif
-            countFirstTime = countFirstTime + 1;
-
-            raw = data;
-            time = (0:length(raw)-1)/fs;
-        else
-            printf("Nenhum dado recebido nesta iteração\n");
         end
 
         % Incrementa o contador de iterações
@@ -140,159 +139,69 @@ try
         printf("Iteração %d concluída em %.2f segundos\n", iteration_count, elapsed);
     end
 
-    % CORREÇÃO: Verificação após sair do loop
-    if (length(primeiraAmostraVetorCompleto) < 2047)
-        printf("AVISO: Não foi possível coletar os 2047 valores desejados. Coletados: %d\n", length(primeiraAmostraVetorCompleto));
-
-        % Se não temos dados suficientes, vamos usar os que temos
-        if (length(primeiraAmostraVetorCompleto) == 0)
-            printf("ERRO: Nenhum dado foi coletado! Usando valores aleatórios para teste.\n");
-            % Gera alguns valores aleatórios para teste
-            primeiraAmostraVetorCompleto = randi([0, 1023], 1, 500);
-        endif
-    endif
-
 catch err
     % Captura exceções (como Ctrl+C)
     printf('Programa interrompido: %s\n', err.message);
 end
 
-%%%%%%%%%%%%%%%%%%% AJUSTE DO VETOR DE REFERÊNCIA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CORREÇÃO: Ajustar o vetor de referência para ter o mesmo tamanho que primeiraAmostraVetorCompleto
+% Obter tamanhos dos vetores
 tamAmostra = length(primeiraAmostraVetorCompleto);
-if (tamAmostra < length(vetorReferencia))
-    printf("Ajustando vetor de referência para %d elementos\n", tamAmostra);
-    vetorReferencia = vetorReferencia(1:tamAmostra);
-elseif (tamAmostra > length(vetorReferencia))
-    printf("AVISO: Amostra maior que referência! Ajustando amostra.\n");
-    primeiraAmostraVetorCompleto = primeiraAmostraVetorCompleto(1:length(vetorReferencia));
-    tamAmostra = length(primeiraAmostraVetorCompleto);
-endif
-
-%%%%%%%%%%%%%%%%%%% CÓDIGO DE ERRO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tamReferencia = length(vetorReferencia);
 
 fprintf('Tamanho do vetor de amostra: %d\n', tamAmostra);
 fprintf('Tamanho do vetor de referência: %d\n', tamReferencia);
 
-% 1. Erro de offset
-% O offset é calculado como a média das diferenças
-offset = mean(primeiraAmostraVetorCompleto - vetorReferencia);
-fprintf('Erro de offset: %.4f\n', offset);
+%%%%%%%%%%%%%%%%%%% MISSING CODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Código para análise de missing code em Octave com todos os gráficos em uma única figura
 
-% 2. Histograma de valores para detectar ausência de bit
-% Vamos criar um histograma com os valores presentes no vetor de amostra
-valorMaximo = max(max(primeiraAmostraVetorCompleto), max(vetorReferencia));
-valorMinimo = min(min(primeiraAmostraVetorCompleto), min(vetorReferencia));
-rangoValores = valorMinimo:valorMaximo;
+% Criar o vetorReferencia conforme especificado
+vetorReferencia = [0:1023, 1022:-1:0];
 
-% Contagem de ocorrências
-histAmostra = histc(primeiraAmostraVetorCompleto, rangoValores);
-histReferencia = histc(vetorReferencia, rangoValores);
+% Assumindo que primeiraAmostraVetorCompleto já foi preenchido em outro lugar
+% primeiraAmostraVetorCompleto = []; % Descomente e preencha se necessário
 
-% Valores ausentes: onde histAmostra é 0 mas histReferencia não é
-valoresAusentes = rangoValores(histAmostra == 0 & histReferencia > 0);
-fprintf('Número de valores ausentes: %d\n', length(valoresAusentes));
-if ~isempty(valoresAusentes)
-    fprintf('Primeiros 10 valores ausentes: ');
-    fprintf('%d ', valoresAusentes(1:min(10, length(valoresAusentes))));
-    fprintf('\n');
+% Para fins de teste, vou criar um exemplo com valores ausentes
+% Remova esta parte e use seu vetor real
+##primeiraAmostraVetorCompleto = unique([0:2:1023, 1022:-2:0]);
+
+% Encontrar os missing codes (valores presentes em vetorReferencia mas ausentes em primeiraAmostraVetorCompleto)
+missingCodes = setdiff(vetorReferencia, primeiraAmostraVetorCompleto);
+
+% Criar um vetor de ocorrência (1 se o código está presente, 0 se está ausente)
+ocorrencia = ones(size(vetorReferencia));
+for i = 1:length(missingCodes)
+    indices = find(vetorReferencia == missingCodes(i));
+    ocorrencia(indices) = 0;
 end
 
-% 3. Erro de não linearidade diferencial (DNL)
-% Para calcular o DNL, precisamos ordenar os valores
-valoresOrdenadosAmostra = sort(primeiraAmostraVetorCompleto);
-valoresOrdenadosReferencia = sort(vetorReferencia);
+% Análise dos missing codes
+numMissingCodes = length(missingCodes);
+percentualMissing = (numMissingCodes / length(unique(vetorReferencia))) * 100;
 
-% Removendo duplicatas para calcular os degraus (LSB - Least Significant Bit)
-valoresUnicosAmostra = unique(valoresOrdenadosAmostra);
-valoresUnicosReferencia = unique(valoresOrdenadosReferencia);
+% Encontrar os índices dos missing codes no vetor de referência
+indicesMissing = [];
+for i = 1:length(missingCodes)
+    indicesMissing = [indicesMissing, find(vetorReferencia == missingCodes(i))];
+end
 
-% Calculando os degraus
-degrausAmostra = diff(valoresUnicosAmostra);
-degrausReferencia = diff(valoresUnicosReferencia);
-
-% O LSB ideal é 1 para um conversor perfeito
-lsbIdeal = 1;
-
-% DNL é a diferença entre o tamanho real do degrau e o tamanho ideal
-dnl = (degrausAmostra / mean(degrausAmostra)) - 1;
-
-% 4. Erro de não linearidade integral (INL)
-% INL é o acúmulo dos erros DNL
-inl = cumsum(dnl);
-
-% Plotando os resultados
-figure(1);
-subplot(2,2,1);
-plot(valoresUnicosAmostra(1:end-1), dnl, 'b-');
-title('Erro de Não Linearidade Diferencial (DNL)');
-xlabel('Código de Saída');
-ylabel('DNL (LSB)');
-grid on;
-
-subplot(2,2,2);
-plot(valoresUnicosAmostra(1:end-1), inl, 'r-');
-title('Erro de Não Linearidade Integral (INL)');
-xlabel('Código de Saída');
-ylabel('INL (LSB)');
-grid on;
-
-subplot(2,2,3);
-plot(vetorReferencia, 'b-', 'LineWidth', 1);
-hold on;
-plot(primeiraAmostraVetorCompleto, 'r--', 'LineWidth', 1);
-title('Comparação: Referência vs Amostra');
-xlabel('Índice');
-ylabel('Valor');
-legend('Referência', 'Amostra');
-grid on;
-
-subplot(2,2,4);
-stem(rangoValores, histAmostra > 0, 'filled', 'b');
-hold on;
-stem(rangoValores, histReferencia > 0, 'r');
-title('Presença de Valores');
+% Gráfico complementar mostrando apenas os missing codes
+figure(2);
+stem(missingCodes, ones(size(missingCodes)), 'r', 'LineWidth', 1.5);
+title(sprintf('Missing Codes: %d valores ausentes (%.2f%%)', numMissingCodes, percentualMissing));
 xlabel('Valor');
-ylabel('Presente (1) / Ausente (0)');
-legend('Amostra', 'Referência');
+ylabel('Missing (1)');
+xlim([min(vetorReferencia) max(vetorReferencia)]);
 grid on;
 
-% Estatísticas adicionais
-fprintf('DNL máximo: %.4f LSB\n', max(abs(dnl)));
-fprintf('INL máximo: %.4f LSB\n', max(abs(inl)));
 
-% Verificação de ausência de bit
-% Um bit ausente resultaria em um padrão específico de valores ausentes
-codigosPresentes = unique(primeiraAmostraVetorCompleto);
-codigosEsperados = unique(vetorReferencia);
-codigosAusentes = setdiff(codigosEsperados, codigosPresentes);
+% Adicionar título principal à figura
+sgtitle(sprintf('Análise Completa de Missing Codes - %.2f%% ausentes', percentualMissing), 'FontSize', 14, 'FontWeight', 'bold');
 
-% Análise de bits ausentes
-if ~isempty(codigosAusentes)
-    bitsAusentes = {};
-    for i = 0:9  % Para um ADC de 10 bits (0-1023)
-        mascara = 2^i;
-        % CORREÇÃO: Use bitand com números inteiros
-        codigosComBit = codigosPresentes(bitand(codigosPresentes, mascara) > 0);
-        codigosSemBit = codigosPresentes(bitand(codigosPresentes, mascara) == 0);
+% Imprimir a análise no console
+printf("\n--- Análise de Missing Codes ---\n");
+printf("Total de códigos de referência: %d\n", length(vetorReferencia));
+printf("Total de códigos de referência únicos: %d\n", length(unique(vetorReferencia)));
+printf("Total de códigos na amostra: %d\n", length(primeiraAmostraVetorCompleto));
+printf("Número de missing codes únicos: %d\n", numMissingCodes);
+printf("Percentual de missing codes: %.2f%%\n", percentualMissing);
 
-        if isempty(codigosComBit) || isempty(codigosSemBit)
-            bitsAusentes{end+1} = i;
-        end
-    end
-
-    if ~isempty(bitsAusentes)
-        fprintf('Possíveis bits ausentes: ');
-        for i = 1:length(bitsAusentes)
-            fprintf('bit %d ', bitsAusentes{i});
-        end
-        fprintf('\n');
-    else
-        fprintf('Nenhum bit específico parece estar ausente sistematicamente.\n');
-    end
-end
-
-%%%%%%%%%%%%%%%%%%% FECHA A PORTA DE COMUNICAÇÃO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fclose(s1);
-printf('Porta serial fechada.\n');
