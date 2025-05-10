@@ -234,30 +234,6 @@ if tam_min > 10
     legend('Sinal Medido', 'Sinal de Referência');
     grid on;
 
-##    % Subplot 2: Gráfico do offset ponto a ponto
-##    subplot(3, 1, 2);
-##    plot(1:tam_min, diferenca_offset, 'g-', 'LineWidth', 1.5);
-##    hold on;
-##    plot([1, tam_min], [offset_medio, offset_medio], 'r--', 'LineWidth', 1.5);
-##    title(sprintf('Análise de Offset - Média: %.2f LSB', offset_medio));
-##    xlabel('Índice da Amostra');
-##    ylabel('Offset (LSB)');
-##    legend('Offset Instantâneo', 'Offset Médio');
-##    grid on;
-
-##    % Subplot 3: Histograma do offset
-##    subplot(3, 1, 3);
-##    hist(diferenca_offset, 20);
-##    title(sprintf('Distribuição do Offset - Desvio Padrão: %.2f LSB', offset_std));
-##    xlabel('Valor do Offset (LSB)');
-##    ylabel('Ocorrências');
-##    grid on;
-
-    % Adicionar título principal à figura de análise de offset
-##    ##sgtitle(sprintf('Análise Completa de Offset - Média: %.2f LSB, Máx: %.2f, Mín: %.2f', ...
-##                   offset_medio, offset_max, offset_min), ...
-##           'FontSize', 14, 'FontWeight', 'bold');
-
     % Imprimir a análise de offset no console
     printf("\n--- Análise de Offset ---\n");
     printf("Offset médio: %.4f LSB\n", offset_medio);
