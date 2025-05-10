@@ -157,13 +157,6 @@ fprintf('Tamanho do vetor de referência: %d\n', tamReferencia);
 % Criar o vetorReferencia conforme especificado
 vetorReferencia = [0:1023, 1022:-1:0];
 
-% Assumindo que primeiraAmostraVetorCompleto já foi preenchido em outro lugar
-% primeiraAmostraVetorCompleto = []; % Descomente e preencha se necessário
-
-% Para fins de teste, vou criar um exemplo com valores ausentes
-% Remova esta parte e use seu vetor real
-##primeiraAmostraVetorCompleto = unique([0:2:1023, 1022:-2:0]);
-
 % Encontrar os missing codes (valores presentes em vetorReferencia mas ausentes em primeiraAmostraVetorCompleto)
 missingCodes = setdiff(vetorReferencia, primeiraAmostraVetorCompleto);
 
@@ -234,7 +227,6 @@ if tam_min > 10
     offset_min = min(diferenca_offset);
 
     % Subplot 1: Comparação direta entre o sinal medido e o de referência
-    subplot(3, 1, 1);
     plot(1:tam_min, amostra_recortada, 'b-', 1:tam_min, referencia_recortada, 'r--', 'LineWidth', 1.5);
     title('Comparação: Sinal Medido vs. Referência');
     xlabel('Índice da Amostra');
@@ -242,24 +234,24 @@ if tam_min > 10
     legend('Sinal Medido', 'Sinal de Referência');
     grid on;
 
-    % Subplot 2: Gráfico do offset ponto a ponto
-    subplot(3, 1, 2);
-    plot(1:tam_min, diferenca_offset, 'g-', 'LineWidth', 1.5);
-    hold on;
-    plot([1, tam_min], [offset_medio, offset_medio], 'r--', 'LineWidth', 1.5);
-    title(sprintf('Análise de Offset - Média: %.2f LSB', offset_medio));
-    xlabel('Índice da Amostra');
-    ylabel('Offset (LSB)');
-    legend('Offset Instantâneo', 'Offset Médio');
-    grid on;
+##    % Subplot 2: Gráfico do offset ponto a ponto
+##    subplot(3, 1, 2);
+##    plot(1:tam_min, diferenca_offset, 'g-', 'LineWidth', 1.5);
+##    hold on;
+##    plot([1, tam_min], [offset_medio, offset_medio], 'r--', 'LineWidth', 1.5);
+##    title(sprintf('Análise de Offset - Média: %.2f LSB', offset_medio));
+##    xlabel('Índice da Amostra');
+##    ylabel('Offset (LSB)');
+##    legend('Offset Instantâneo', 'Offset Médio');
+##    grid on;
 
-    % Subplot 3: Histograma do offset
-    subplot(3, 1, 3);
-    hist(diferenca_offset, 20);
-    title(sprintf('Distribuição do Offset - Desvio Padrão: %.2f LSB', offset_std));
-    xlabel('Valor do Offset (LSB)');
-    ylabel('Ocorrências');
-    grid on;
+##    % Subplot 3: Histograma do offset
+##    subplot(3, 1, 3);
+##    hist(diferenca_offset, 20);
+##    title(sprintf('Distribuição do Offset - Desvio Padrão: %.2f LSB', offset_std));
+##    xlabel('Valor do Offset (LSB)');
+##    ylabel('Ocorrências');
+##    grid on;
 
     % Adicionar título principal à figura de análise de offset
 ##    ##sgtitle(sprintf('Análise Completa de Offset - Média: %.2f LSB, Máx: %.2f, Mín: %.2f', ...
